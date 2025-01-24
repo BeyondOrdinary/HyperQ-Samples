@@ -79,6 +79,19 @@ namespace Simulation.LunarLander
         public double DistanceToLZInMiles { get { return DistanceToLZ / Z_English; } }
         public double DistanceToLZRemainderFeet { get { return Math.Abs(Math.Truncate((DistanceToLZInMiles - Math.Truncate(DistanceToLZInMiles)) * Z_English)); } }
 
+        public double AltitudeInMilesAtStart { get; private set; } = 60.0;
+        public double MaxFuelAtStart { get; private set; } = 750.0;
+        public double VerticalSpeedAtStart { get; private set; } = 0.0;
+        public double HorizontalSpeedAtStart { get; private set; } = 0.0;
+        public double DistanceToLZAtStart { get; private set; } = 0.0;
+
+        public double PercentAltitudeFromStart { get { return AltitudeInMiles / AltitudeInMilesAtStart; } }
+        public double PercentFuelFromStart { get { return FuelLevel / MaxFuelAtStart; } }
+        public double PercentVerticalSpeedFromStart { get { return 0.0; } }
+        public double PercentToLZ { get { return DistanceToLZ / DistanceToLZAtStart; } }
+        public double PercentHorizontalSpeedFromStart { get { return HorizontalSpeed / HorizontalSpeedAtStart; } }
+        public Rocket2Control LastBurn { get; private set; } = null;
+
         private double R1 = 0.0;
         private double A = 0.0;
         private double A1 = 0.0;
@@ -142,23 +155,35 @@ namespace Simulation.LunarLander
             }
         }
 
-        public void Reset(double a=60.0,double max_fuel=750.0)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a">In miles, initial altitude</param>
+        /// <param name="max_fuel">pounds of fuel</param>
+        /// <param name="vspeed">nautical miles per hour</param>
+        public void Reset(double a = 60.0, double max_fuel = 750.0, double vspeed = 0.0)
         {
+            AltitudeInMilesAtStart = a;
+            MaxFuelAtStart = max_fuel;
             M1 = 7.45;
             M0 = M1;
             AltitudeInMiles = a;
-            R1 = 0.0;
-            A = -3.425;
-            A1 = 8.84361e-4;
+            R1 = vspeed; // Starting with no vertical speed
+            A = -3.425; // Angle in radiians
+            A1 = 8.84361e-4; // Angular velocity
             M = 17.95;
-            R0 = 926;
-            H0 = a;
+            R0 = 1876.2 / 2.0; // Radius of the moon, D=1876.2 nm
+            H0 = a; // Initial distance from lunar surface
             B = max_fuel;
-            R = R0 + H0;
+            R = R0 + H0; // Radial distance from center of Moon to LEM
             FuelLevel = B;
-            VerticalSpeed = R1*Z_English;
+            VerticalSpeed = R1 * Z_English;
             HorizontalSpeed = A1 * R * Z_English;
             DistanceToLZ = R0 * A * Z_English;
+            LastBurn = null;
+            HorizontalSpeedAtStart = HorizontalSpeed;
+            VerticalSpeedAtStart = VerticalSpeed;
+            DistanceToLZAtStart = DistanceToLZ;
         }
 
         public bool OutOfOrbit
@@ -171,6 +196,7 @@ namespace Simulation.LunarLander
 
         public double ApplyControl(Rocket2Control ctrl)
         {
+            LastBurn = ctrl;
             double F = ctrl.F;
             if (F > 1.0)
             {

@@ -39,6 +39,11 @@ namespace Simulation.LunarLander
         protected const int DEFAULT_ACTION_PRECISION = 10;
         private double _ElapsedTime;
 
+        private const int TERRAIN_WIDTH = 65;
+        private const int TERRAIN_MIDDLE = 32; // index into moon surface
+        private const int LZ_INDEX = 1000;
+        private char[,] _MoonSurface = null;
+
         private Random _ran = null;
 
         public bool Quiet { get; set; } = false;
@@ -71,6 +76,464 @@ namespace Simulation.LunarLander
             _LEM = new Rocket2LEM();
             Quiet = quiet;
             _ElapsedTime = 0;
+            MakeMoonSurface();
+        }
+
+        private void MakeMoonSurface()
+        {
+            _MoonSurface = new char[3, 5897]; // moon is 5897 nm in circumference
+            int next_alien = 0;
+            int d_since_terrain = 0;
+            int len = _MoonSurface.GetLength(1);
+            for (int i = 0; i < len; i++)
+            {
+                _MoonSurface[0, i] = ' ';
+                _MoonSurface[1, i] = ' ';
+                _MoonSurface[2, i] = '~';
+                if (_ran.Next(100) % 3 == 0)
+                    _MoonSurface[2, i] = 'o';
+            }
+            for (int i = 0; i < len; i++)
+            {
+                d_since_terrain++;
+                if (d_since_terrain > 45 && (i < LZ_INDEX - 3 || i > LZ_INDEX + 3))
+                {
+                    int r = _ran.Next(100);
+                    if (r < 2 && next_alien < 3)
+                    {
+                        d_since_terrain = 0;
+                        int i1 = i;
+                        switch (next_alien)
+                        {
+                            case 0:
+                                //  _--_
+                                // (====)
+                                //   /\
+                                i1 = i - 3;
+                                if (i1 < 0)
+                                    i1 += len;
+                                _MoonSurface[1, i1] = '(';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '_';
+                                _MoonSurface[1, i1] = '=';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '-';
+                                _MoonSurface[1, i1] = '=';
+                                _MoonSurface[2, i1] = '/';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '-';
+                                _MoonSurface[1, i1] = '=';
+                                _MoonSurface[2, i1] = '\\';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '_';
+                                _MoonSurface[1, i1] = '=';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[1, i1] = ')';
+                                i1 = (i1 + 1) % len;
+                                i += 3;
+                                break;
+                            case 1:
+                                // .-^-.
+                                // (UFO)
+                                // '---'
+                                i1 = i - 2;
+                                if (i1 < 0)
+                                    i1 += len;
+                                _MoonSurface[0, i1] = '.';
+                                _MoonSurface[1, i1] = '(';
+                                _MoonSurface[2, i1] = '\'';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '-';
+                                _MoonSurface[1, i1] = 'U';
+                                _MoonSurface[2, i1] = '-';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '^';
+                                _MoonSurface[1, i1] = 'F';
+                                _MoonSurface[2, i1] = '-';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '-';
+                                _MoonSurface[1, i1] = 'O';
+                                _MoonSurface[2, i1] = '-';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '.';
+                                _MoonSurface[1, i1] = ')';
+                                _MoonSurface[2, i1] = '\'';
+                                i += 2;
+                                break;
+                            case 2:
+                                //  __ 
+                                // (==)
+                                // /__\
+                                i1 = i - 2;
+                                if (i1 < 0)
+                                    i1 += len;
+                                _MoonSurface[1, i1] = '(';
+                                _MoonSurface[2, i1] = '/';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '-';
+                                _MoonSurface[1, i1] = '=';
+                                _MoonSurface[2, i1] = '_';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[0, i1] = '-';
+                                _MoonSurface[1, i1] = '=';
+                                _MoonSurface[2, i1] = '_';
+                                i1 = (i1 + 1) % len;
+                                _MoonSurface[1, i1] = ')';
+                                _MoonSurface[2, i1] = '\\';
+                                i += 2;
+                                break;
+                        }
+                        next_alien++;
+                    }
+                    else if (r < 10)
+                    {
+                        d_since_terrain = 0;
+                        // Big structure
+                        //   ____
+                        //  / oo \
+                        // ~~~~~~~~
+                        int i1 = i - 3;
+                        if (i1 < 0)
+                            i1 += len;
+                        _MoonSurface[1, i1] = '/';
+                        i1 = (i1 + 1) % len;
+                        _MoonSurface[0, i1] = '_';
+                        i1 = (i1 + 1) % len;
+                        _MoonSurface[0, i1] = '_';
+                        i1 = (i1 + 1) % len;
+                        _MoonSurface[0, i1] = '_';
+                        i1 = (i1 + 1) % len;
+                        _MoonSurface[1, i1] = '\\';
+                        i += 3;
+                    }
+                    else if (r < 35)
+                    {
+                        d_since_terrain = 0;
+                        // little structure
+                        //
+                        // /-\
+                        // ~~~
+                        int i1 = i - 1;
+                        if (i1 < 0)
+                            i1 += _MoonSurface.GetLength(1);
+                        _MoonSurface[1, i1] = '/';
+                        i1 = (i1 + 1) % _MoonSurface.GetLength(1);
+                        _MoonSurface[1, i1] = '-';
+                        i1 = (i1 + 1) % _MoonSurface.GetLength(1);
+                        _MoonSurface[1, i1] = '\\';
+                        i += 1;
+                    }
+                }
+            }
+            // Start is X from LZ, so make a spot for the LZ (a little flag)
+            _MoonSurface[0, LZ_INDEX] = '^';
+            _MoonSurface[0, LZ_INDEX + 1] = '-';
+            _MoonSurface[1, LZ_INDEX] = '|';
+            /*
+            Console.WriteLine("==+ MOON TERRAIN +==");
+            for (int j = 0; j < _MoonSurface.GetLength(0); j++)
+            {
+                for (int i = 0; i < _MoonSurface.GetLength(1); i++)
+                {
+                    Console.Write(_MoonSurface[j, i]);
+                }
+                Console.WriteLine();
+            }
+            */
+        }
+
+        public void RenderGUI()
+        {
+            if (_LEM.LastBurn == null)
+                return;
+            double burn = _LEM.LastBurn.Power;
+            // Compute the number of bars
+            int bars3 = 0;
+            while (burn > 50.0)
+            {
+                bars3++;
+                burn = burn - 15.0;
+            }
+            int bars1 = 0;
+            while (burn > 0)
+            {
+                bars1++;
+                burn = burn - 15.0;
+            }
+            /*
+               +-----+
+               + LEM +
+               +-----+
+              /  ***  \
+                 ***
+                 *** bars3
+                  *
+                  *
+                  * bars1
+             */
+            int max_lines = 30;
+            int lem_lines = 4 + bars3 + bars1 - 1;
+            max_lines -= lem_lines;
+            double from_max_pct = 1 - (_LEM.AltitudeInMiles * 5280.0 + _LEM.AltitudeRemainderInFeet) / (60.0 * 5280.0); // Start at 60
+            if (from_max_pct > 1.0)
+                from_max_pct = 1.0;
+            if (from_max_pct < 0.0)
+                from_max_pct = 0.0;
+            int top_lines = (int)Math.Truncate(max_lines * from_max_pct);
+            // 30 lines for the 120 miles of altitude
+            Console.WriteLine(">>frame");
+            // Moon circumference is 5897 nautical miles
+            // LZ is at index 1000 in the terrain
+            // Terrain center is 
+            int terrainLocationIndex = (int)Math.Floor(1000.0 + _LEM.DistanceToLZ);
+            while (terrainLocationIndex < 0)
+                terrainLocationIndex += _MoonSurface.GetLength(1);
+            while (terrainLocationIndex >= _MoonSurface.GetLength(1))
+                terrainLocationIndex -= _MoonSurface.GetLength(1);
+            Console.Write("|");
+            Console.Write(new string('~', TERRAIN_WIDTH));
+            Console.WriteLine();
+            for (int i = 0; i < top_lines; i++)
+            {
+                Console.WriteLine("|");
+                max_lines--;
+            }
+            bool left_wind = _LEM.HorizontalSpeedInMiles > 0.0;
+            bool right_wind = _LEM.HorizontalSpeedInMiles < 0.0;
+
+            int lem_width = 7;
+            string leftPad = new string(' ', 28 - lem_width / 2 - 3 * (left_wind ? 1 : 0));
+            Console.Write($"|{leftPad}");
+            if (left_wind)
+            {
+                Console.Write("  ~");
+            }
+            Console.Write("+-----+");
+            if (right_wind)
+                Console.Write("~");
+            Console.WriteLine();
+
+            Console.Write($"|{leftPad}");
+            if (left_wind)
+            {
+                Console.Write("~~~");
+            }
+            Console.Write("+ LEM +");
+            if (right_wind)
+                Console.Write("~~~");
+            Console.WriteLine();
+
+            Console.Write($"|{leftPad}");
+            if (left_wind)
+            {
+                Console.Write("  ~");
+            }
+            Console.Write("+-----+");
+            if (right_wind)
+                Console.Write("~");
+            Console.WriteLine();
+
+            leftPad = new string(' ', 28 - lem_width / 2);
+            Console.Write($"|{leftPad}/ ");
+            if (bars3 > 0)
+            {
+                Console.Write("***");
+                bars3--;
+            }
+            else
+            {
+                if (bars1 > 0)
+                {
+                    Console.Write(" * ");
+                    bars1--;
+                }
+                else
+                {
+                    Console.Write("   ");
+                }
+            }
+            Console.WriteLine(" \\ ");
+            while (bars3 > 0)
+            {
+                Console.WriteLine($"|{leftPad}  ***  ");
+                bars3--;
+            }
+            while (bars1 > 0)
+            {
+                Console.WriteLine($"|{leftPad}   *   ");
+                bars1--;
+            }
+            for (int i = 0; i < max_lines; i++)
+            {
+                Console.WriteLine("|");
+            }
+            Console.WriteLine("|");
+            int moon_length = _MoonSurface.GetLength(1);
+            int final_rows = 0;
+            for (int j = 0; j < _MoonSurface.GetLength(0); j++)
+            {
+                Console.Write("|");
+                for (int k = 0; k < TERRAIN_WIDTH; k++)
+                {
+                    int mlx = terrainLocationIndex + k - TERRAIN_MIDDLE;
+                    while (mlx < 0)
+                    {
+                        mlx += moon_length;
+                    }
+                    while (mlx >= moon_length)
+                        mlx = mlx - moon_length;
+                    Console.Write(_MoonSurface[j, mlx]);
+                    if (mlx > 1000 && final_rows < 4)
+                        final_rows = 4;
+                    else if (mlx > 100 && final_rows < 3)
+                        final_rows = 3;
+                    else if (mlx > 10 && final_rows < 2)
+                        final_rows = 2;
+                    else
+                        final_rows = 1;
+                }
+                Console.WriteLine();
+            }
+            /*
+            for (int j = 0; j < final_rows; j++)
+            {
+                Console.Write("|");
+                for (int k = 0; k < TERRAIN_WIDTH; k++)
+                {
+                    int mlx = terrainLocationIndex + k - TERRAIN_MIDDLE;
+                    while (mlx < 0)
+                    {
+                        mlx += moon_length;
+                    }
+                    while (mlx >= moon_length)
+                        mlx = mlx - moon_length;
+                    string sx = $"{mlx}";
+                    if (j < sx.Length)
+                        Console.Write(sx[j]);
+                }
+                Console.WriteLine();
+            }
+            */
+            // 24 columns for the graph
+            Console.Write("|ALTITUDE: [");
+            int ratio = (int)Math.Truncate(_LEM.PercentAltitudeFromStart * 24);
+            int c = 0;
+            if (ratio < 0)
+            {
+                ratio = 24 + ratio;
+                if (ratio > 24)
+                {
+                    ratio = 24;
+                }
+                for (int i = 24 - ratio; i > 0; i--)
+                {
+                    Console.Write(" ");
+                    c++;
+                }
+            }
+            else if (ratio > 24)
+            {
+                ratio = 24;
+            }
+            for (int i = 0; i < ratio; i++)
+            {
+                Console.Write("*");
+                c++;
+            }
+            while (c < 24)
+            {
+                Console.Write(" ");
+                c++;
+            }
+            Console.WriteLine("] {0:F2} Mi ({1:F2}%)", _LEM.AltitudeInMiles, _LEM.PercentAltitudeFromStart * 100.0);
+            Console.Write("|    FUEL: [");
+            c = 0;
+            ratio = (int)Math.Truncate(_LEM.PercentFuelFromStart * 24);
+            if (ratio < 0)
+            {
+                ratio = 0;
+            }
+            else if (ratio > 24)
+            {
+                ratio = 24;
+            }
+            for (int i = 0; i < ratio; i++)
+            {
+                Console.Write("*");
+                c++;
+            }
+            while (c < 24)
+            {
+                Console.Write(" ");
+                c++;
+            }
+            Console.WriteLine("] {0:F2} Lbs", _LEM.FuelLevel);
+            Console.Write("| v SPEED: [");
+            c = 0;
+            ratio = (int)Math.Truncate(_LEM.PercentVerticalSpeedFromStart * 24);
+            if (ratio < 0)
+            {
+                ratio = 0;
+            }
+            else if (ratio > 24)
+            {
+                ratio = 24;
+            }
+            for (int i = 0; i < ratio; i++)
+            {
+                Console.Write("*");
+                c++;
+            }
+            while (c < 24)
+            {
+                Console.Write(" ");
+                c++;
+            }
+            Console.WriteLine("] {0:F2} MPH", _LEM.VerticalSpeedInMiles);
+            Console.Write("| h SPEED: [");
+            c = 0;
+            ratio = (int)Math.Truncate(_LEM.PercentHorizontalSpeedFromStart * 24);
+            if (ratio < 0)
+            {
+                ratio = 0;
+            }
+            else if (ratio > 24)
+            {
+                ratio = 24;
+            }
+            for (int i = 0; i < ratio; i++)
+            {
+                Console.Write("*");
+                c++;
+            }
+            while (c < 24)
+            {
+                Console.Write(" ");
+                c++;
+            }
+            Console.WriteLine("] {0:F2} MPH", _LEM.HorizontalSpeedInMiles);
+            Console.Write("|   TO LZ: [");
+            c = 0;
+            ratio = (int)Math.Truncate(_LEM.PercentToLZ * 24);
+            if (ratio < 0)
+            {
+                ratio = 0;
+            }
+            else if (ratio > 24)
+            {
+                ratio = 24;
+            }
+            for (int i = 0; i < ratio; i++)
+            {
+                Console.Write("*");
+                c++;
+            }
+            while (c < 24)
+            {
+                Console.Write(" ");
+                c++;
+            }
+            Console.WriteLine("] {0:F2} Mi", _LEM.DistanceToLZInMiles);
         }
 
         public void Render()
